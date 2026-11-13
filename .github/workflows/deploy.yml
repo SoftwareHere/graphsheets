@@ -18,16 +18,29 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
       - run: npm ci
       - run: npm test
       - run: npm run build
+
+      # The site is a Vite build, so Pages must publish the built dist/ folder.
+      # "Deploy from a branch" serves the raw source instead, which loads no CSS or JS.
+      - name: Check that Pages publishes from GitHub Actions
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          build_type=$(gh api "repos/${GITHUB_REPOSITORY}/pages" --jq .build_type 2>/dev/null || echo "not enabled")
+          if [ "$build_type" != "workflow" ]; then
+            echo "::error title=GitHub Pages source is '${build_type}'::In the repo, open Settings > Pages and set Source to 'GitHub Actions', then re-run this workflow."
+            exit 1
+          fi
+
       - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v4
         with:
           path: dist
 
