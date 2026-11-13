@@ -71,7 +71,7 @@
 
 * { box-sizing: border-box; }
 
-html, body { margin: 0; height: 100%; }
+html, body { margin: 0; }
 
 body {
   font-family: var(--font);
@@ -81,6 +81,7 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  min-height: 100dvh;
   transition: background-color 0.4s var(--ease), color 0.4s var(--ease);
   overflow-x: hidden;
 }
@@ -348,11 +349,12 @@ option { background: var(--panel-solid); color: var(--text); }
 /* ---------- responsive ---------- */
 @media (max-width: 860px) {
   .topbar { margin: 10px 10px 0; padding: 12px; gap: 12px; }
-  .layout { grid-template-columns: 1fr; padding: 10px; gap: 10px; }
-  .stage { order: -1; min-height: 0; height: 58vh; }
-  .panel { max-height: none; }
-  .transport { gap: 10px; }
+  .transport { flex-basis: 100%; order: 3; gap: 10px; }
   .toggles { margin-left: auto; }
+  .layout { flex: none; grid-template-columns: 1fr; padding: 10px; gap: 10px; }
+  .stage { order: -1; min-height: 320px; height: 58vh; }
+  .panel { max-height: none; overflow: visible; }
+  .help { margin-top: 4px; }
   .stage-hint { display: none; }
 }
 
@@ -360,5 +362,4 @@ option { background: var(--panel-solid); color: var(--text); }
   .brand-name { display: none; }
   .field > label { display: none; }
   .topbar { padding: 10px; }
-  .transport { flex-basis: 100%; order: 3; }
 }
