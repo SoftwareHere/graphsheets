@@ -1,2 +1,49 @@
-# graphsheets
-Make music with graphic equations!
+# GraphSheets
+
+Make music with graph equations. Type an equation and it plays: the height of the curve sets the pitch, and playback sweeps from the far left of the graph to the right, looping as it goes.
+
+## Features
+
+- **Height = pitch.** The y axis is measured in semitones above a root note you choose (default C3). `y = 12` is one octave up and `y = -12` is one octave down.
+- **Left to right = time.** Each column on the graph is one beat. Playback always starts at the far left edge and loops.
+- **Two voices per equation:**
+  - **Tone** is an oscillator (sine, triangle, saw or square) that glides smoothly along the curve.
+  - **808** is a punchy, saturated sub bass that hits on a beat grid (every ½, 1, 2 or 4 beats) and follows the curve's pitch between hits.
+- **BPM control** with +/−, typing, mouse wheel, or tap tempo.
+- **Beat overlay** that you can show or hide. It draws bar and beat lines, numbers along the top, and highlights the current beat.
+- **Loop length** of 1, 2, 4 or 8 bars, plus an optional metronome click.
+- **Snap** pitches to chromatic, major, minor or pentatonic scales, or leave them gliding freely.
+- **Light and dark mode.** It follows your system setting by default and remembers your choice.
+- Scroll on the graph to zoom the pitch range, drag to pan, and double-click to reset.
+- Your work is saved automatically in the browser.
+
+## Equation syntax
+
+Write the right-hand side of `y = ...` using `x` (time in beats).
+
+| Example | What it does |
+|---|---|
+| `7 sin(pi x / 4)` | A smooth rising and falling melody |
+| `-12 + 5 floor(mod(x, 8) / 2)` | A stepped bass line |
+| `2 floor(x) - 6` | A rising staircase, one note per beat |
+| `12 - abs(x - 8)` | Up then down |
+| `5 {4 < x < 8}` | A note held only between beats 4 and 8 |
+
+Braces `{a < x < b}` limit where a curve exists. Outside that range, and anywhere the equation is undefined (for example `sqrt` of a negative number), the voice is silent.
+
+Supported: `+ - * / ^`, implicit multiplication (`2x`, `pi x`), `sin cos tan abs sqrt floor ceil round mod exp log min max`, `pi`, `e` and more.
+
+## Development
+
+```bash
+npm install
+npm run dev      # start a local dev server
+npm test         # run unit tests
+npm run build    # production build into dist/
+```
+
+Built with Vite, TypeScript, mathjs and the Web Audio API. Every sound is synthesized in the browser, so there are no audio samples.
+
+## Deployment
+
+Every push to `main` builds the app and publishes it to GitHub Pages via `.github/workflows/deploy.yml`.

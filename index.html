@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Make music with graph equations. The height of each curve sets its pitch." />
+    <title>GraphSheets</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%237c5cff'/%3E%3Cpath d='M5 20c3-9 6-9 8 0s5 9 8 0 4-8 6-4' stroke='white' stroke-width='3' fill='none' stroke-linecap='round'/%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+    <script>
+      // apply the saved theme before first paint to avoid a flash
+      try {
+        var s = JSON.parse(localStorage.getItem('graphsheets:v1') || '{}');
+        var t = s.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.dataset.theme = t;
+      } catch (e) {
+        document.documentElement.dataset.theme = 'dark';
+      }
+    </script>
+  </head>
+  <body>
+    <div class="bg-glow" aria-hidden="true"></div>
+    <header class="topbar">
+      <div class="brand">
+        <span class="logo" aria-hidden="true">
+          <svg viewBox="0 0 32 32"><path d="M5 20c3-9 6-9 8 0s5 9 8 0 4-8 6-4" /></svg>
+        </span>
+        <span class="brand-name">Graph<b>Sheets</b></span>
+      </div>
+
+      <div class="transport">
+        <button id="play" class="play-btn" aria-label="Play (Space)" title="Play / Stop (Space)"></button>
+
+        <div class="field">
+          <label for="bpm">BPM</label>
+          <div class="stepper">
+            <button id="bpm-dec" aria-label="Decrease BPM">−</button>
+            <input id="bpm" type="number" min="40" max="240" step="1" inputmode="numeric" />
+            <button id="bpm-inc" aria-label="Increase BPM">+</button>
+          </div>
+          <button id="tap" class="ghost-btn" title="Tap to set tempo">Tap</button>
+        </div>
+
+        <div class="field">
+          <label for="bars">Loop</label>
+          <select id="bars">
+            <option value="1">1 bar</option>
+            <option value="2">2 bars</option>
+            <option value="4">4 bars</option>
+            <option value="8">8 bars</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="root">Root</label>
+          <select id="root"></select>
+        </div>
+
+        <div class="field">
+          <label for="snap">Snap</label>
+          <select id="snap">
+            <option value="off">Glide</option>
+            <option value="chromatic">Chromatic</option>
+            <option value="major">Major</option>
+            <option value="minor">Minor</option>
+            <option value="pentatonic">Pentatonic</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="toggles">
+        <button id="beats-toggle" class="chip" aria-pressed="true" title="Show or hide the beat overlay"></button>
+        <button id="metro-toggle" class="chip" aria-pressed="false" title="Metronome click"></button>
+        <button id="theme-toggle" class="icon-btn round" aria-label="Toggle light or dark mode" title="Light / dark mode"></button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <aside class="panel">
+        <div class="panel-head">
+          <h2>Equations</h2>
+          <span class="panel-sub">y = pitch in semitones · x = beats</span>
+        </div>
+        <div id="eq-list" class="eq-list"></div>
+        <button id="add-eq" class="add-btn">+ Add equation</button>
+
+        <details class="help">
+          <summary>How it works</summary>
+          <ul>
+            <li><b>Height = pitch.</b> Each step up on the y axis is one semitone above the root note. <code>12</code> is an octave up.</li>
+            <li><b>Left to right = time.</b> Each grid column is one beat. Playback starts at the far left and loops.</li>
+            <li><b>Tone</b> glides smoothly along the curve. <b>808</b> hits on a beat grid and follows the curve with a deep, punchy bass.</li>
+            <li>Limit a curve with braces: <code>sin(x)*5 {2 &lt; x &lt; 6}</code>. Outside the range is silence.</li>
+            <li>Try <code>floor(x)</code>, <code>mod(x, 4)</code>, <code>abs(x - 8)</code>, <code>sqrt(x)</code>, <code>2^x</code>.</li>
+          </ul>
+        </details>
+      </aside>
+
+      <section class="stage">
+        <canvas id="graph" aria-label="Equation graph"></canvas>
+        <div class="stage-hint">Scroll to zoom pitch · drag to pan · double-click to reset</div>
+      </section>
+    </main>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
