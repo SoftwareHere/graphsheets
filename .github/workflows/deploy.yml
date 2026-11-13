@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write # commit the built site when Pages publishes from a branch
   pages: write
   id-token: write
 
@@ -17,6 +17,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      build_type: ${{ steps.pages.outputs.build_type }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -25,27 +27,63 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+      # Builds into dist/ and copies the site to the repo root
       - run: npm run build
 
-      # The site is a Vite build, so Pages must publish the built dist/ folder.
-      # "Deploy from a branch" serves the raw source instead, which loads no CSS or JS.
-      - name: Check that Pages publishes from GitHub Actions
+      - name: Find how GitHub Pages publishes
+        id: pages
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          build_type=$(gh api "repos/${GITHUB_REPOSITORY}/pages" --jq .build_type 2>/dev/null || echo "not enabled")
-          if [ "$build_type" != "workflow" ]; then
-            echo "::error title=GitHub Pages source is '${build_type}'::In the repo, open Settings > Pages and set Source to 'GitHub Actions', then re-run this workflow."
-            exit 1
-          fi
+          info=$(gh api "repos/${GITHUB_REPOSITORY}/pages" --jq '"\(.build_type)|\(.source.branch // "")|\(.source.path // "/")"' 2>/dev/null || echo 'none||/')
+          IFS='|' read -r build_type branch path <<< "$info"
+          echo "Pages build type: $build_type, branch: ${branch:-n/a}, folder: $path"
+          {
+            echo "build_type=$build_type"
+            echo "branch=$branch"
+            echo "path=$path"
+          } >> "$GITHUB_OUTPUT"
 
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v4
+      # Source = "GitHub Actions": publish dist/ directly (the deploy job below)
+      - if: steps.pages.outputs.build_type == 'workflow'
+        uses: actions/configure-pages@v5
+      - if: steps.pages.outputs.build_type == 'workflow'
+        uses: actions/upload-pages-artifact@v4
         with:
           path: dist
 
+      # Source = "Deploy from a branch": keep the built site committed in the
+      # folder Pages serves, so the branch always holds a working page.
+      - name: Commit the built site for branch publishing
+        if: steps.pages.outputs.build_type != 'workflow'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PAGES_BRANCH: ${{ steps.pages.outputs.branch }}
+          PAGES_PATH: ${{ steps.pages.outputs.path }}
+        run: |
+          if [ -n "$PAGES_BRANCH" ] && [ "$PAGES_BRANCH" != "$GITHUB_REF_NAME" ]; then
+            echo "::warning::Pages publishes from '$PAGES_BRANCH', not '$GITHUB_REF_NAME'. Set Settings > Pages to '$GITHUB_REF_NAME' or 'GitHub Actions'."
+          fi
+          dir=.
+          if [ "$PAGES_PATH" = "/docs" ]; then
+            dir=docs
+            node scripts/copy-build.mjs docs
+          fi
+          git add -A -- "$dir/index.html" "$dir/assets" "$dir/.nojekyll"
+          if git diff --cached --quiet; then
+            echo "The committed site is already up to date."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Update built site for GitHub Pages"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+          # Ask Pages to rebuild from the new commit
+          gh api -X POST "repos/${GITHUB_REPOSITORY}/pages/builds" > /dev/null || true
+
   deploy:
     needs: build
+    if: needs.build.outputs.build_type == 'workflow'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
